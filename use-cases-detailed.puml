@@ -1,0 +1,148 @@
+@startuml PetClinic - Casos de Uso Detallados
+
+title Sistema PetClinic - Casos de Uso Detallados por Módulo
+
+left to right direction
+skinparam packageStyle rectangle
+
+actor "Usuario del\nSistema" as user
+
+rectangle "Sistema Spring PetClinic" {
+    
+    ' ========== MÓDULO OWNERS ==========
+    package "Módulo: Propietarios (Owners)" #LightBlue {
+        usecase (Iniciar Búsqueda\nde Propietario) as OWN01
+        usecase (Buscar por\nApellido) as OWN02
+        usecase (Mostrar Resultados\nPaginados) as OWN03
+        usecase (Crear Nuevo\nPropietario) as OWN04
+        usecase (Validar Datos\ndel Propietario) as OWN05
+        usecase (Ver Detalles\nCompletos del Propietario) as OWN06
+        usecase (Editar Propietario\nExistente) as OWN07
+        usecase (Validar ID de\nPropietario) as OWN08
+        
+        OWN01 ..> OWN02 : <<include>>
+        OWN02 ..> OWN03 : <<include>>
+        OWN04 ..> OWN05 : <<include>>
+        OWN07 ..> OWN05 : <<include>>
+        OWN07 ..> OWN08 : <<include>>
+        OWN06 ..> OWN08 : <<include>>
+    }
+    
+    ' ========== MÓDULO PETS ==========
+    package "Módulo: Mascotas (Pets)" #LightGreen {
+        usecase (Agregar Nueva\nMascota) as PET01
+        usecase (Validar Nombre\nÚnico de Mascota) as PET02
+        usecase (Validar Fecha de\nNacimiento) as PET03
+        usecase (Seleccionar Tipo\nde Mascota) as PET04
+        usecase (Editar Datos\nde Mascota) as PET05
+        usecase (Actualizar Detalles\nde Mascota Existente) as PET06
+        usecase (Verificar Mascota\nde Propietario) as PET07
+        
+        PET01 ..> PET02 : <<include>>
+        PET01 ..> PET03 : <<include>>
+        PET01 ..> PET04 : <<include>>
+        PET05 ..> PET02 : <<include>>
+        PET05 ..> PET03 : <<include>>
+        PET05 ..> PET04 : <<include>>
+        PET05 ..> PET06 : <<include>>
+        PET01 ..> PET07 : <<include>>
+        PET05 ..> PET07 : <<include>>
+    }
+    
+    ' ========== MÓDULO VISITS ==========
+    package "Módulo: Visitas (Visits)" #LightYellow {
+        usecase (Iniciar Nueva\nVisita) as VIS01
+        usecase (Cargar Datos de\nMascota y Propietario) as VIS02
+        usecase (Registrar Detalles\nde la Visita) as VIS03
+        usecase (Validar Datos\nde Visita) as VIS04
+        usecase (Guardar Visita en\nHistorial) as VIS05
+        usecase (Asociar Visita\na Mascota) as VIS06
+        
+        VIS01 ..> VIS02 : <<include>>
+        VIS03 ..> VIS04 : <<include>>
+        VIS03 ..> VIS05 : <<include>>
+        VIS05 ..> VIS06 : <<include>>
+    }
+    
+    ' ========== MÓDULO VETS ==========
+    package "Módulo: Veterinarios (Vets)" #LightPink {
+        usecase (Ver Lista de\nVeterinarios HTML) as VET01
+        usecase (Paginar Lista de\nVeterinarios) as VET02
+        usecase (Obtener Veterinarios\nJSON (API REST)) as VET03
+        usecase (Ver Especialidades\nde Veterinarios) as VET04
+        usecase (Ordenar Veterinarios) as VET05
+        
+        VET01 ..> VET02 : <<include>>
+        VET01 ..> VET04 : <<include>>
+        VET01 ..> VET05 : <<include>>
+        VET03 ..> VET04 : <<include>>
+    }
+    
+    ' ========== MÓDULO SYSTEM ==========
+    package "Módulo: Sistema" #LightGray {
+        usecase (Acceder Página\nde Bienvenida) as SYS01
+        usecase (Manejar Errores) as SYS02
+        usecase (Navegación General) as SYS03
+    }
+}
+
+' Conexiones de usuario a casos de uso principales
+user --> OWN01
+user --> OWN04
+user --> OWN06
+user --> OWN07
+user --> PET01
+user --> PET05
+user --> VIS01
+user --> VIS03
+user --> VET01
+user --> VET03
+user --> SYS01
+
+' Relaciones entre módulos
+PET01 -.> OWN06 : requiere
+PET05 -.> OWN06 : requiere
+VIS01 -.> PET07 : requiere
+VIS01 -.> OWN06 : requiere
+
+' Notas
+note top of "Módulo: Propietarios (Owners)"
+  **Controller:** OwnerController
+  **Endpoints principales:**
+  - GET /owners/find
+  - GET /owners
+  - POST /owners/new
+  - GET /owners/{ownerId}
+  - POST /owners/{ownerId}/edit
+end note
+
+note top of "Módulo: Mascotas (Pets)"
+  **Controller:** PetController
+  **Endpoints principales:**
+  - GET /owners/{ownerId}/pets/new
+  - POST /owners/{ownerId}/pets/new
+  - GET /owners/{ownerId}/pets/{petId}/edit
+  - POST /owners/{ownerId}/pets/{petId}/edit
+end note
+
+note top of "Módulo: Visitas (Visits)"
+  **Controller:** VisitController
+  **Endpoints principales:**
+  - GET /owners/{ownerId}/pets/{petId}/visits/new
+  - POST /owners/{ownerId}/pets/{petId}/visits/new
+end note
+
+note top of "Módulo: Veterinarios (Vets)"
+  **Controller:** VetController
+  **Endpoints principales:**
+  - GET /vets.html
+  - GET /vets (JSON REST API)
+end note
+
+note bottom of user
+  Puede ser: Recepcionista,
+  Personal administrativo,
+  o Cliente consultando información
+end note
+
+@enduml

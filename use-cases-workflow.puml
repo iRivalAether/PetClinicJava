@@ -1,0 +1,176 @@
+@startuml PetClinic - Flujos de Trabajo Principales
+
+title Sistema PetClinic - Flujos de Trabajo y Casos de Uso de Negocio
+
+left to right direction
+skinparam packageStyle rectangle
+
+' Actores
+actor "Recepcionista" as recep #LightBlue
+actor "Propietario" as owner #LightGreen
+actor "Veterinario" as vet #LightPink
+actor "Sistema Externo" as external #LightGray
+
+rectangle "Sistema de Gestión de Clínica Veterinaria" {
+    
+    ' ==================== FLUJO 1: REGISTRO Y GESTIÓN DE CLIENTES ====================
+    package "Flujo 1: Gestión de Clientes" #Technology {
+        usecase "F1.1 Registrar Nuevo\nPropietario" as F1_1
+        usecase "F1.2 Buscar y Localizar\nPropietario" as F1_2
+        usecase "F1.3 Actualizar Datos\nde Contacto" as F1_3
+        usecase "F1.4 Consultar Historial\nCompleto del Cliente" as F1_4
+    }
+    
+    ' ==================== FLUJO 2: REGISTRO Y GESTIÓN DE MASCOTAS ====================
+    package "Flujo 2: Gestión de Mascotas" #Application {
+        usecase "F2.1 Registrar Nueva\nMascota al Cliente" as F2_1
+        usecase "F2.2 Actualizar Información\nMédica de Mascota" as F2_2
+        usecase "F2.3 Modificar Datos\nde Mascota" as F2_3
+        usecase "F2.4 Consultar Ficha\nde Mascota" as F2_4
+    }
+    
+    ' ==================== FLUJO 3: GESTIÓN DE CITAS Y VISITAS ====================
+    package "Flujo 3: Programación de Visitas" #Business {
+        usecase "F3.1 Agendar Nueva\nCita Médica" as F3_1
+        usecase "F3.2 Registrar Motivo\nde Consulta" as F3_2
+        usecase "F3.3 Guardar Diagnóstico\ny Tratamiento" as F3_3
+        usecase "F3.4 Consultar Historial\nde Visitas" as F3_4
+        usecase "F3.5 Vincular Visita\na Mascota" as F3_5
+    }
+    
+    ' ==================== FLUJO 4: CONSULTA DE PERSONAL MÉDICO ====================
+    package "Flujo 4: Directorio de Veterinarios" #Strategy {
+        usecase "F4.1 Consultar Veterinarios\nDisponibles" as F4_1
+        usecase "F4.2 Ver Especialidades\nMédicas" as F4_2
+        usecase "F4.3 Filtrar por\nEspecialidad" as F4_3
+        usecase "F4.4 Obtener Información\nvía API REST" as F4_4
+    }
+    
+    ' ==================== COMPONENTES TRANSVERSALES ====================
+    package "Servicios Comunes" #Motivation {
+        usecase "Validar Datos\nde Entrada" as COM_1
+        usecase "Gestionar Errores\ny Excepciones" as COM_2
+        usecase "Mostrar Mensajes\nde Confirmación" as COM_3
+        usecase "Implementar Paginación\nde Resultados" as COM_4
+    }
+}
+
+' ==================== CONEXIONES DE ACTORES ====================
+
+' Recepcionista - Acceso completo
+recep --> F1_1
+recep --> F1_2
+recep --> F1_3
+recep --> F1_4
+recep --> F2_1
+recep --> F2_2
+recep --> F2_3
+recep --> F3_1
+recep --> F3_2
+recep --> F4_1
+recep --> F4_2
+
+' Propietario - Acceso limitado a consulta
+owner --> F1_4 : consulta
+owner --> F2_4
+owner --> F3_4
+owner --> F4_1
+
+' Veterinario
+vet --> F3_3
+vet --> F3_4
+vet --> F4_1
+vet --> F4_2
+
+' Sistema Externo
+external --> F4_4
+
+' ==================== RELACIONES ENTRE FLUJOS ====================
+
+' Flujo 1 -> Flujo 2
+F2_1 ..> F1_4 : <<requiere>>
+F2_3 ..> F1_4 : <<requiere>>
+
+' Flujo 2 -> Flujo 3
+F3_1 ..> F2_4 : <<requiere>>
+F3_1 ..> F3_5 : <<include>>
+F3_2 ..> F3_5 : <<include>>
+
+' Flujo 3 -> Flujo 1
+F3_1 ..> F1_2 : <<requiere>>
+
+' Subpasos dentro de flujos
+F1_2 ..> COM_4 : <<include>>
+F1_1 ..> COM_1 : <<include>>
+F1_3 ..> COM_1 : <<include>>
+F2_1 ..> COM_1 : <<include>>
+F2_3 ..> COM_1 : <<include>>
+F3_1 ..> COM_1 : <<include>>
+F3_2 ..> COM_1 : <<include>>
+F4_1 ..> COM_4 : <<include>>
+
+F1_1 ..> COM_3 : <<include>>
+F1_3 ..> COM_3 : <<include>>
+F2_1 ..> COM_3 : <<include>>
+F2_3 ..> COM_3 : <<include>>
+F3_2 ..> COM_3 : <<include>>
+
+' ==================== NOTAS EXPLICATIVAS ====================
+
+note left of "Flujo 1: Gestión de Clientes"
+  **Propósito:** Administrar la base
+  de datos de propietarios de mascotas
+  
+  **Datos gestionados:**
+  - Nombre y Apellido
+  - Dirección
+  - Ciudad
+  - Teléfono (10 dígitos)
+end note
+
+note left of "Flujo 2: Gestión de Mascotas"
+  **Propósito:** Mantener registro
+  completo de cada mascota
+  
+  **Datos gestionados:**
+  - Nombre
+  - Fecha de nacimiento
+  - Tipo de mascota (PetType)
+  - Relación con propietario
+end note
+
+note right of "Flujo 3: Programación de Visitas"
+  **Propósito:** Gestionar citas y
+  mantener historial médico
+  
+  **Datos gestionados:**
+  - Fecha de visita
+  - Descripción/Motivo
+  - Tratamiento aplicado
+  - Mascota asociada
+end note
+
+note right of "Flujo 4: Directorio de Veterinarios"
+  **Propósito:** Proporcionar información
+  sobre el personal médico
+  
+  **Datos proporcionados:**
+  - Nombre del veterinario
+  - Especialidades médicas
+  - Disponibilidad
+end note
+
+note bottom of COM_4
+  La paginación se implementa
+  con 5 registros por página
+end note
+
+note bottom of COM_1
+  Incluye validaciones de:
+  - Formato de teléfono
+  - Fechas futuras
+  - Nombres duplicados
+  - Campos obligatorios
+end note
+
+@enduml

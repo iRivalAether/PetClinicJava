@@ -22,6 +22,7 @@ import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.samples.petclinic.owner.service.OwnerService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -39,21 +40,31 @@ import jakarta.validation.Valid;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 /**
+ * Controller for Owner operations.
+ *
+ * REFACTORED TO USE SERVICE LAYER PATTERN WHY: Controllers should only handle HTTP
+ * concerns (request/response mapping). Business logic has been moved to OwnerService,
+ * resulting in: - Thinner controllers - Better separation of concerns - Easier testing -
+ * Reusable business logic
+ *
  * @author Juergen Hoeller
  * @author Ken Krebs
  * @author Arjen Poutsma
  * @author Michael Isvy
  * @author Wick Dynex
+ * @author Refactored for Design Patterns
  */
 @Controller
 class OwnerController {
 
 	private static final String VIEWS_OWNER_CREATE_OR_UPDATE_FORM = "owners/createOrUpdateOwnerForm";
 
-	private final OwnerRepository owners;
+	// PATTERN: Dependency Injection of Service instead of Repository
+	// WHY: Controller depends on abstraction (service) not implementation (repository)
+	private final OwnerService ownerService;
 
-	public OwnerController(OwnerRepository owners) {
-		this.owners = owners;
+	public OwnerController(OwnerService ownerService) {
+		this.ownerService = ownerService;
 	}
 
 	@InitBinder
@@ -63,8 +74,9 @@ class OwnerController {
 
 	@ModelAttribute("owner")
 	public Owner findOwner(@PathVariable(name = "ownerId", required = false) Integer ownerId) {
+		// Delegating to service layer instead of direct repository access
 		return ownerId == null ? new Owner()
-				: this.owners.findById(ownerId)
+				: this.ownerService.findById(ownerId)
 					.orElseThrow(() -> new IllegalArgumentException("Owner not found with id: " + ownerId
 							+ ". Please ensure the ID is correct " + "and the owner exists in the database."));
 	}
@@ -81,9 +93,10 @@ class OwnerController {
 			return VIEWS_OWNER_CREATE_OR_UPDATE_FORM;
 		}
 
-		this.owners.save(owner);
+		// Using service layer which handles business logic
+		Owner createdOwner = this.ownerService.createOwner(owner);
 		redirectAttributes.addFlashAttribute("message", "New Owner Created");
-		return "redirect:/owners/" + owner.getId();
+		return "redirect:/owners/" + createdOwner.getId();
 	}
 
 	@GetMapping("/owners/find")
@@ -100,6 +113,7 @@ class OwnerController {
 			lastName = ""; // empty string signifies broadest possible search
 		}
 
+		// Delegating search to service layer
 		// find owners by last name
 		Page<Owner> ownersResults = findPaginatedForOwnersLastName(page, lastName);
 		if (ownersResults.isEmpty()) {
@@ -129,8 +143,9 @@ class OwnerController {
 
 	private Page<Owner> findPaginatedForOwnersLastName(int page, String lastname) {
 		int pageSize = 5;
+		// Using service layer for data access
 		Pageable pageable = PageRequest.of(page - 1, pageSize);
-		return owners.findByLastNameStartingWith(lastname, pageable);
+		return ownerService.findByLastName(lastname, pageable);
 	}
 
 	@GetMapping("/owners/{ownerId}/edit")
@@ -152,8 +167,8 @@ class OwnerController {
 			return "redirect:/owners/{ownerId}/edit";
 		}
 
-		owner.setId(ownerId);
-		this.owners.save(owner);
+		// Using service layer which handles validation and business logic
+		this.ownerService.updateOwner(ownerId, owner);
 		redirectAttributes.addFlashAttribute("message", "Owner Values Updated");
 		return "redirect:/owners/{ownerId}";
 	}
@@ -165,8 +180,9 @@ class OwnerController {
 	 */
 	@GetMapping("/owners/{ownerId}")
 	public ModelAndView showOwner(@PathVariable("ownerId") int ownerId) {
+		// Using service layer for data retrieval
 		ModelAndView mav = new ModelAndView("owners/ownerDetails");
-		Optional<Owner> optionalOwner = this.owners.findById(ownerId);
+		Optional<Owner> optionalOwner = this.ownerService.findById(ownerId);
 		Owner owner = optionalOwner.orElseThrow(() -> new IllegalArgumentException(
 				"Owner not found with id: " + ownerId + ". Please ensure the ID is correct "));
 		mav.addObject(owner);

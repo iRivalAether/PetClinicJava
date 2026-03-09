@@ -1,0 +1,131 @@
+@startuml PetClinic - Casos de Uso Simplificado
+
+title Sistema PetClinic - Casos de Uso Principales (Vista Simplificada)
+
+' Configuración
+skinparam actorStyle awesome
+left to right direction
+
+' Actores
+:Recepcionista: as recep
+:Propietario\nde Mascota: as owner
+:Veterinario: as vet
+
+rectangle "Sistema de Clínica Veterinaria (Spring PetClinic)" {
+    
+    ' PROPIETARIOS
+    (Registrar Propietario) as UC_REG_OWNER
+    (Buscar Propietario) as UC_SEARCH_OWNER
+    (Actualizar Propietario) as UC_UPDATE_OWNER
+    (Ver Información del Propietario) as UC_VIEW_OWNER
+    
+    ' MASCOTAS
+    (Registrar Mascota) as UC_REG_PET
+    (Actualizar Datos de Mascota) as UC_UPDATE_PET
+    (Ver Información de Mascota) as UC_VIEW_PET
+    
+    ' VISITAS
+    (Agendar Visita) as UC_SCHEDULE_VISIT
+    (Registrar Consulta) as UC_REGISTER_VISIT
+    (Ver Historial de Visitas) as UC_VIEW_HISTORY
+    
+    ' VETERINARIOS
+    (Consultar Veterinarios) as UC_VIEW_VETS
+    (Ver Especialidades) as UC_VIEW_SPECIALTIES
+    (API de Veterinarios) as UC_API_VETS
+}
+
+' =============== RELACIONES DE ACTORES ===============
+
+' Recepcionista - Operaciones principales
+recep --> UC_REG_OWNER
+recep --> UC_SEARCH_OWNER
+recep --> UC_UPDATE_OWNER
+recep --> UC_VIEW_OWNER
+recep --> UC_REG_PET
+recep --> UC_UPDATE_PET
+recep --> UC_SCHEDULE_VISIT
+recep --> UC_REGISTER_VISIT
+recep --> UC_VIEW_VETS
+recep --> UC_VIEW_SPECIALTIES
+
+' Propietario - Solo consultas
+owner --> UC_VIEW_OWNER
+owner --> UC_VIEW_PET
+owner --> UC_VIEW_HISTORY
+owner --> UC_VIEW_VETS
+
+' Veterinario
+vet --> UC_VIEW_HISTORY
+vet --> UC_REGISTER_VISIT
+vet --> UC_VIEW_VETS
+vet --> UC_VIEW_SPECIALTIES
+vet --> UC_API_VETS
+
+' =============== RELACIONES ENTRE CASOS DE USO ===============
+
+' Include relationships
+UC_REG_PET ..> UC_VIEW_OWNER : <<include>>
+UC_UPDATE_PET ..> UC_VIEW_OWNER : <<include>>
+UC_SCHEDULE_VISIT ..> UC_VIEW_PET : <<include>>
+UC_SCHEDULE_VISIT ..> UC_VIEW_OWNER : <<include>>
+UC_VIEW_OWNER ..> UC_VIEW_PET : <<include>>
+UC_VIEW_OWNER ..> UC_VIEW_HISTORY : <<include>>
+UC_VIEW_VETS ..> UC_VIEW_SPECIALTIES : <<include>>
+
+' Extend relationships
+UC_REGISTER_VISIT .> UC_SCHEDULE_VISIT : <<extend>>
+
+' =============== NOTAS ===============
+
+note right of UC_SEARCH_OWNER
+  - Búsqueda por apellido
+  - Resultados paginados
+  - Navegación automática si
+    solo hay un resultado
+end note
+
+note right of UC_REG_PET
+  - Validación de nombre único
+  - Validación de fecha de nacimiento
+  - Selección de tipo de mascota
+  - Asociación con propietario
+end note
+
+note right of UC_SCHEDULE_VISIT
+  - Requiere mascota registrada
+  - Fecha y descripción
+  - Asociación automática
+    al historial de la mascota
+end note
+
+note left of UC_VIEW_VETS
+  - Vista HTML paginada
+  - Vista JSON (REST API)
+  - Incluye especialidades
+  - Ordenamiento alfabético
+end note
+
+note bottom of "Sistema de Clínica Veterinaria (Spring PetClinic)"
+  **Tecnologías:**
+  - Spring Boot
+  - Spring MVC
+  - Spring Data JPA
+  - Thymeleaf
+  - Base de datos: H2/MySQL/PostgreSQL
+  
+  **Patrones implementados:**
+  - Validación de datos (Jakarta Validation)
+  - Paginación de resultados
+  - RESTful API
+  - Mensajes Flash (feedback al usuario)
+end note
+
+legend right
+  |= Símbolo |= Significado |
+  | <<include>> | Caso de uso incluido obligatoriamente |
+  | <<extend>> | Caso de uso opcional/condicional |
+  | --> | El actor inicia el caso de uso |
+endlegend
+
+@enduml

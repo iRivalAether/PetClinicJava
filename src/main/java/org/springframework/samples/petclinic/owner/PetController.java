@@ -20,9 +20,10 @@ import java.util.Collection;
 import java.util.Objects;
 import java.util.Optional;
 
+import org.springframework.samples.petclinic.owner.service.OwnerService;
+import org.springframework.samples.petclinic.owner.service.PetService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
-import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.WebDataBinder;
@@ -38,10 +39,17 @@ import jakarta.validation.Valid;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 /**
+ * Controller for Pet operations.
+ *
+ * REFACTORED TO USE SERVICE LAYER PATTERN WHY: Separates HTTP concerns from business
+ * logic. Business logic moved to PetService, providing: - Better testability - Reusable
+ * business operations - Cleaner controller code
+ *
  * @author Juergen Hoeller
  * @author Ken Krebs
  * @author Arjen Poutsma
  * @author Wick Dynex
+ * @author Refactored for Design Patterns
  */
 @Controller
 @RequestMapping("/owners/{ownerId}")
@@ -49,23 +57,26 @@ class PetController {
 
 	private static final String VIEWS_PETS_CREATE_OR_UPDATE_FORM = "pets/createOrUpdatePetForm";
 
-	private final OwnerRepository owners;
+	// PATTERN: Dependency Injection - Services instead of Repositories
+	private final OwnerService ownerService;
 
-	private final PetTypeRepository types;
+	private final PetService petService;
 
-	public PetController(OwnerRepository owners, PetTypeRepository types) {
-		this.owners = owners;
-		this.types = types;
+	public PetController(OwnerService ownerService, PetService petService) {
+		this.ownerService = ownerService;
+		this.petService = petService;
 	}
 
 	@ModelAttribute("types")
 	public Collection<PetType> populatePetTypes() {
-		return this.types.findPetTypes();
+		// Delegating to service layer
+		return this.petService.findPetTypes();
 	}
 
 	@ModelAttribute("owner")
 	public Owner findOwner(@PathVariable("ownerId") int ownerId) {
-		Optional<Owner> optionalOwner = this.owners.findById(ownerId);
+		// Using service layer
+		Optional<Owner> optionalOwner = this.ownerService.findById(ownerId);
 		Owner owner = optionalOwner.orElseThrow(() -> new IllegalArgumentException(
 				"Owner not found with id: " + ownerId + ". Please ensure the ID is correct "));
 		return owner;
@@ -79,7 +90,8 @@ class PetController {
 			return new Pet();
 		}
 
-		Optional<Owner> optionalOwner = this.owners.findById(ownerId);
+		// Using service layer for owner retrieval
+		Optional<Owner> optionalOwner = this.ownerService.findById(ownerId);
 		Owner owner = optionalOwner.orElseThrow(() -> new IllegalArgumentException(
 				"Owner not found with id: " + ownerId + ". Please ensure the ID is correct "));
 		return owner.getPet(petId);
@@ -118,8 +130,8 @@ class PetController {
 			return VIEWS_PETS_CREATE_OR_UPDATE_FORM;
 		}
 
-		owner.addPet(pet);
-		this.owners.save(owner);
+		// Using service layer which handles complex business logic
+		this.petService.addPetToOwner(owner.getId(), pet);
 		redirectAttributes.addFlashAttribute("message", "New Pet has been Added");
 		return "redirect:/owners/{ownerId}";
 	}
@@ -152,30 +164,19 @@ class PetController {
 			return VIEWS_PETS_CREATE_OR_UPDATE_FORM;
 		}
 
-		updatePetDetails(owner, pet);
+		// Using service layer which handles the update logic
+		this.petService.updatePet(owner.getId(), pet.getId(), pet);
 		redirectAttributes.addFlashAttribute("message", "Pet details has been edited");
 		return "redirect:/owners/{ownerId}";
 	}
 
-	/**
-	 * Updates the pet details if it exists or adds a new pet to the owner.
-	 * @param owner The owner of the pet
-	 * @param pet The pet with updated details
-	 */
-	private void updatePetDetails(Owner owner, Pet pet) {
-		Integer id = pet.getId();
-		Assert.state(id != null, "'pet.getId()' must not be null");
-		Pet existingPet = owner.getPet(id);
-		if (existingPet != null) {
-			// Update existing pet's properties
-			existingPet.setName(pet.getName());
-			existingPet.setBirthDate(pet.getBirthDate());
-			existingPet.setType(pet.getType());
-		}
-		else {
-			owner.addPet(pet);
-		}
-		this.owners.save(owner);
-	}
+	// METHOD REMOVED - Logic moved to PetService
+	// This demonstrates the Service Layer Pattern - business logic is now in the service
+	// /**
+	// * Updates the pet details if it exists or adds a new pet to the owner.
+	// * @param owner The owner of the pet
+	// * @param pet The pet with updated details
+	// */
+	// private void updatePetDetails(Owner owner, Pet pet) { ... }
 
 }

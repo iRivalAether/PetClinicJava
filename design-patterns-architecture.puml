@@ -1,0 +1,262 @@
+@startuml Patrones de Diseño Implementados
+
+title Spring PetClinic - Arquitectura con Patrones de Diseño
+
+!define LAYER rectangle
+
+skinparam packageStyle rectangle
+skinparam linetype ortho
+
+' ==================== PRESENTATION LAYER ====================
+LAYER "PRESENTATION LAYER" #LightBlue {
+    component "OwnerController\n(MVC)" as MVC
+    component "OwnerRestController\n(REST API)" as REST
+    
+    note right of MVC
+      **Responsabilidad:**
+      - Manejo de peticiones HTTP
+      - Validación de entrada
+      - Renderizado de vistas
+      
+      **Patrón:** MVC
+    end note
+    
+    note right of REST
+      **Responsabilidad:**
+      - Endpoints REST
+      - Usa DTOs (no entidades)
+      - Validación de entrada
+      
+      **Patrón:** DTO Pattern
+    end note
+}
+
+' ==================== SERVICE LAYER ====================
+LAYER "SERVICE LAYER" #LightGreen {
+    interface "OwnerService" as IOwnerService
+    component "OwnerServiceImpl" as OwnerService
+    interface "PetService" as IPetService
+    component "PetServiceImpl" as PetService
+    interface "VisitService" as IVisitService
+    component "VisitServiceImpl" as VisitService
+    
+    note right of IOwnerService
+      **PATRÓN: Service Layer**
+      
+      **¿Por qué?**
+      - Encapsula lógica de negocio
+      - Reutilizable entre MVC y REST
+      - Transacciones bien definidas
+      - Fácil de testear
+      
+      **Beneficios:**
+      - 1 lugar para reglas de negocio
+      - Controllers más delgados
+      - Testeable con mocks
+    end note
+}
+
+' ==================== BUSINESS PATTERNS LAYER ====================
+LAYER "PATTERN IMPLEMENTATIONS" #LightYellow {
+    
+    package "STRATEGY PATTERN" {
+        interface "OwnerSearchStrategy" as IStrategy
+        component "PartialMatchStrategy" as Strategy1
+        component "ContainsStrategy" as Strategy2
+        component "OwnerSearchContext" as Context
+        
+        IStrategy <|.. Strategy1
+        IStrategy <|.. Strategy2
+        Context o-- IStrategy
+        
+        note right of Context
+          **PATRÓN: Strategy**
+          
+          Permite cambiar algoritmo
+          de búsqueda en runtime:
+          - Partial match
+          - Contains
+          - Exact (futuro)
+          - Fuzzy (futuro)
+        end note
+    }
+    
+    package "FACTORY + BUILDER" {
+        component "OwnerFactory" as Factory1
+        component "PetFactory" as Factory2
+        component "OwnerBuilder" as Builder1
+        component "PetBuilder" as Builder2
+        
+        Factory1 ..> Builder1 : crea
+        Factory2 ..> Builder2 : crea
+        
+        note right of Factory1
+          **PATRÓN: Factory + Builder**
+          
+          **Factory:**
+          - createOwner()
+          - createDefaultOwner()
+          
+          **Builder:**
+          - API fluida
+          - withFirstName()
+          - withLastName()
+          - build()
+          
+          **Beneficio:**
+          Creación consistente y validada
+        end note
+    }
+    
+    package "DTO + MAPPER" {
+        component "OwnerDTO" as DTO
+        component "OwnerMapper" as Mapper
+        
+        note right of DTO
+          **PATRÓN: DTO (Data Transfer Object)**
+          
+          **Campos adicionales:**
+          - fullName (computado)
+          - petCount (agregado)
+          - pets (solo resumen)
+          
+          **Beneficio:**
+          API desacoplada del modelo
+        end note
+        
+        note right of Mapper
+          **PATRÓN: Mapper**
+          
+          Métodos:
+          - toDTO(Owner)
+          - toEntity(OwnerDTO)
+          - updateEntityFromDTO()
+          
+          **Beneficio:**
+          Conversión centralizada
+        end note
+    }
+}
+
+' ==================== DATA ACCESS LAYER ====================
+LAYER "DATA ACCESS LAYER" #LightPink {
+    interface "OwnerRepository" as IRepo
+    component "Spring Data JPA" as JPA
+    
+    IRepo <|.. JPA
+    
+    note right of IRepo
+      **PATRÓN: Repository**
+      
+      **Responsabilidad:**
+      - Acceso a datos
+      - Queries a BD
+      - Abstracción de persistencia
+      
+      **Ya existente en Spring**
+    end note
+}
+
+' ==================== DOMAIN LAYER ====================
+LAYER "DOMAIN LAYER" #LightGray {
+    entity "Owner" as Owner
+    entity "Pet" as Pet
+    entity "Visit" as Visit
+    entity "PetType" as PetType
+    
+    Owner "1" o-- "*" Pet
+    Pet "1" o-- "*" Visit
+    Pet "*" -- "1" PetType
+    
+    note right of Owner
+      **Entidades de Dominio**
+      
+      - Owner
+      - Pet
+      - Visit
+      - PetType
+      
+      **Sin cambios estructurales**
+      Solo se accede a través de
+      servicios ahora
+    end note
+}
+
+' ==================== CONNECTIONS ====================
+
+' Presentation -> Service
+MVC --> IOwnerService : usa
+REST --> IOwnerService : usa
+REST --> Mapper : usa
+Mapper ..> DTO : crea
+Mapper ..> Owner : convierte
+
+' Service -> Pattern Implementations
+OwnerService --> Context : usa
+OwnerService --> Factory1 : puede usar
+PetService --> Factory2 : puede usar
+
+' Service -> Domain
+IOwnerService <|.. OwnerService
+IPetService <|.. PetService
+IVisitService <|.. VisitService
+
+OwnerService ..> Owner : maneja
+PetService ..> Pet : maneja
+VisitService ..> Visit : maneja
+
+' Service -> Repository
+OwnerService --> IRepo : usa
+Context --> IRepo : usa
+
+' Repository -> Domain
+IRepo ..> Owner : persiste
+
+' Factories -> Domain
+Factory1 ..> Owner : crea
+Factory2 ..> Pet : crea
+
+' ==================== ANNOTATIONS ====================
+
+note as N1
+  **PRINCIPIOS APLICADOS:**
+  
+  ✅ Single Responsibility Principle
+     Cada clase tiene 1 responsabilidad
+  
+  ✅ Open/Closed Principle
+     Estrategias: abiertas para extensión
+  
+  ✅ Dependency Inversion
+     Depende de interfaces, no implementaciones
+  
+  ✅ Separation of Concerns
+     Capas bien definidas
+end note
+
+note as N2
+  **PATRONES IMPLEMENTADOS:**
+  
+  1. Service Layer Pattern
+  2. DTO Pattern
+  3. Mapper Pattern
+  4. Factory Pattern
+  5. Builder Pattern
+  6. Strategy Pattern
+  7. Repository Pattern
+  8. Dependency Injection
+  9. Facade Pattern (implícito)
+end note
+
+legend right
+  |= Símbolo |= Significado |
+  | Rectangle | Componente/Clase |
+  | Interface | Interfaz |
+  | Entity | Entidad de Dominio |
+  | o-- | Composición |
+  | --> | Usa/Depende |
+  | .> | Crea/Convierte |
+  | <|.. | Implementa |
+endlegend
+
+@enduml

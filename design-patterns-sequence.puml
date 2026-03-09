@@ -1,0 +1,138 @@
+@startuml Diagrama de Secuencia - Crear Owner con Patrones
+
+title Crear Owner - Flujo con Patrones de Diseño
+
+actor "Usuario" as User
+participant "OwnerController\n(MVC)" as Controller
+participant "OwnerService\n(Service Layer)" as Service
+participant "OwnerFactory\n(Factory Pattern)" as Factory
+participant "OwnerRepository" as Repo
+participant "Owner\n(Entity)" as Entity
+database "Database" as DB
+
+User -> Controller: POST /owners/new\n(formData)
+
+activate Controller
+note right of Controller
+  **Responsabilidad del Controller:**
+  - Validar entrada HTTP
+  - Delegar a Service Layer
+  - Manejar vista/redirect
+  
+  **NO hace:**
+  - Lógica de negocio
+  - Acceso directo a BD
+end note
+
+Controller -> Service: createOwner(owner)
+
+activate Service
+note right of Service
+  **PATRÓN: Service Layer**
+  
+  **Responsabilidades:**
+  - Validar reglas de negocio
+  - Coordinar operaciones
+  - Gestionar transacción
+  - Aplicar lógica de negocio
+end note
+
+Service -> Service: validateOwner(owner)
+activate Service
+note right
+  **Validaciones de negocio:**
+  - Campos requeridos
+  - Formato de teléfono
+  - Reglas de dominio
+end note
+deactivate Service
+
+alt Validación fallida
+    Service --> Controller: throw IllegalArgumentException
+    Controller --> User: Mostrar error
+else Validación exitosa
+    Service -> Repo: save(owner)
+    activate Repo
+    
+    Repo -> DB: INSERT INTO owners...
+    activate DB
+    DB --> Repo: owner guardado
+    deactivate DB
+    
+    Repo --> Service: owner (con ID)
+    deactivate Repo
+    
+    Service --> Controller: owner creado
+    deactivate Service
+    
+    Controller -> Controller: redirectAttributes\n.addFlashAttribute("message")
+    
+    Controller --> User: redirect:/owners/{id}
+    deactivate Controller
+end
+
+== Alternativa con Factory Pattern ==
+
+User -> Controller: Crear owner con\ndatos predeterminados
+
+activate Controller
+Controller -> Factory: createDefaultOwner()
+
+activate Factory
+note right of Factory
+  **PATRÓN: Factory**
+  
+  **Ventajas:**
+  - Creación consistente
+  - Valores predeterminados
+  - Útil para testing
+end note
+
+Factory -> Entity: new Owner()
+activate Entity
+Entity --> Factory: owner
+deactivate Entity
+
+Factory -> Factory: setFirstName("John")\nsetLastName("Doe")\nsetAddress(...)\n...
+
+Factory --> Controller: owner configurado
+deactivate Factory
+
+Controller -> Service: createOwner(owner)
+Service -> Repo: save(owner)
+Repo --> Service: owner guardado
+Service --> Controller: owner creado
+Controller --> User: redirect:/owners/{id}
+deactivate Controller
+
+== Alternativa con Builder Pattern ==
+
+User -> Controller: Crear owner con\nBuilder Pattern
+
+activate Controller
+Controller -> Factory: builder()
+
+activate Factory
+Factory --> Controller: OwnerBuilder
+deactivate Factory
+
+Controller -> Controller: builder\n  .withFirstName("John")\n  .withLastName("Doe")\n  .withAddress("123 Main")\n  .withCity("NYC")\n  .withTelephone("1234567890")\n  .build()
+
+note right of Controller
+  **PATRÓN: Builder**
+  
+  **Ventajas:**
+  - API fluida y legible
+  - Validación en build()
+  - Campos opcionales
+  - Inmutabilidad posible
+end note
+
+Controller -> Service: createOwner(owner)
+Service -> Repo: save(owner)
+Repo --> Service: owner guardado
+Service --> Controller: owner creado
+Controller --> User: redirect:/owners/{id}
+deactivate Controller
+
+@enduml

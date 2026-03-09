@@ -1,0 +1,110 @@
+@startuml PetClinic - Diagrama de Casos de Uso
+
+!define RECTANGLE rectangle
+!define USECASE usecase
+
+title Sistema PetClinic - Casos de Uso
+
+left to right direction
+skinparam packageStyle rectangle
+
+actor "Recepcionista" as receptionist
+actor "Propietario\nde Mascota" as owner
+actor "Veterinario" as vet
+
+rectangle "Sistema PetClinic" {
+    
+    package "Gestión de Propietarios" {
+        usecase "Buscar Propietario" as UC1
+        usecase "Listar Propietarios" as UC2
+        usecase "Crear Propietario" as UC3
+        usecase "Ver Detalles del\nPropietario" as UC4
+        usecase "Actualizar Información\ndel Propietario" as UC5
+    }
+    
+    package "Gestión de Mascotas" {
+        usecase "Registrar Nueva\nMascota" as UC6
+        usecase "Actualizar Información\nde Mascota" as UC7
+        usecase "Ver Detalles\nde Mascota" as UC8
+        usecase "Seleccionar Tipo\nde Mascota" as UC9
+    }
+    
+    package "Gestión de Visitas" {
+        usecase "Programar Visita" as UC10
+        usecase "Registrar Visita" as UC11
+        usecase "Ver Historial\nde Visitas" as UC12
+    }
+    
+    package "Gestión de Veterinarios" {
+        usecase "Ver Lista de\nVeterinarios" as UC13
+        usecase "Ver Especialidades\nde Veterinarios" as UC14
+        usecase "Consultar Veterinarios\n(API)" as UC15
+    }
+    
+    package "Sistema General" {
+        usecase "Acceder a Página\nPrincipal" as UC16
+        usecase "Navegar por\nel Sistema" as UC17
+    }
+}
+
+' Relaciones - Recepcionista
+receptionist --> UC1
+receptionist --> UC2
+receptionist --> UC3
+receptionist --> UC4
+receptionist --> UC5
+receptionist --> UC6
+receptionist --> UC7
+receptionist --> UC10
+receptionist --> UC11
+receptionist --> UC13
+receptionist --> UC14
+receptionist --> UC16
+receptionist --> UC17
+
+' Relaciones - Propietario
+owner --> UC4
+owner --> UC8
+owner --> UC12
+owner --> UC13
+owner --> UC14
+owner --> UC16
+
+' Relaciones - Veterinario
+vet --> UC12
+vet --> UC13
+vet --> UC14
+vet --> UC15
+
+' Relaciones include y extend
+UC6 .> UC9 : <<include>>
+UC7 .> UC9 : <<include>>
+UC4 .> UC8 : <<include>>
+UC4 .> UC12 : <<include>>
+UC11 .> UC10 : <<extend>>
+UC2 .> UC1 : <<extend>>
+
+' Notas explicativas
+note right of UC1
+  Permite buscar propietarios
+  por apellido con paginación
+end note
+
+note right of UC6
+  Validación de nombre único
+  y fecha de nacimiento
+end note
+
+note right of UC10
+  La visita se asocia a
+  una mascota específica
+  de un propietario
+end note
+
+note bottom of UC15
+  Endpoint REST para
+  integración con otros
+  sistemas
+end note
+
+@enduml

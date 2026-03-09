@@ -18,6 +18,8 @@ package org.springframework.samples.petclinic.owner;
 import java.util.Map;
 import java.util.Optional;
 
+import org.springframework.samples.petclinic.owner.service.OwnerService;
+import org.springframework.samples.petclinic.owner.service.VisitService;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.WebDataBinder;
@@ -31,20 +33,32 @@ import jakarta.validation.Valid;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 /**
+ * Controller for Visit operations.
+ *
+ * REFACTORED TO USE SERVICE LAYER PATTERN WHY: Controller now focuses purely on HTTP
+ * request/response handling. Complex business logic for visit management is delegated to
+ * VisitService. Benefits: - Simplified controller logic - Testable business rules -
+ * Reusable service methods
+ *
  * @author Juergen Hoeller
  * @author Ken Krebs
  * @author Arjen Poutsma
  * @author Michael Isvy
  * @author Dave Syer
  * @author Wick Dynex
+ * @author Refactored for Design Patterns
  */
 @Controller
 class VisitController {
 
-	private final OwnerRepository owners;
+	// PATTERN: Dependency Injection - Services instead of Repositories
+	private final OwnerService ownerService;
 
-	public VisitController(OwnerRepository owners) {
-		this.owners = owners;
+	private final VisitService visitService;
+
+	public VisitController(OwnerService ownerService, VisitService visitService) {
+		this.ownerService = ownerService;
+		this.visitService = visitService;
 	}
 
 	@InitBinder
@@ -62,7 +76,7 @@ class VisitController {
 	@ModelAttribute("visit")
 	public Visit loadPetWithVisit(@PathVariable("ownerId") int ownerId, @PathVariable("petId") int petId,
 			Map<String, Object> model) {
-		Optional<Owner> optionalOwner = owners.findById(ownerId);
+		Optional<Owner> optionalOwner = ownerService.findById(ownerId);
 		Owner owner = optionalOwner.orElseThrow(() -> new IllegalArgumentException(
 				"Owner not found with id: " + ownerId + ". Please ensure the ID is correct "));
 
@@ -95,8 +109,9 @@ class VisitController {
 			return "pets/createOrUpdateVisitForm";
 		}
 
-		owner.addVisit(petId, visit);
-		this.owners.save(owner);
+		// Using service layer which handles the complex logic of adding visit
+		// This demonstrates the Facade Pattern - simple interface for complex operation
+		this.visitService.addVisit(owner.getId(), petId, visit);
 		redirectAttributes.addFlashAttribute("message", "Your visit has been booked");
 		return "redirect:/owners/{ownerId}";
 	}
